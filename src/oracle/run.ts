@@ -24,6 +24,7 @@ import { formatElapsed, formatUSD } from './format.js';
 import { getFileTokenStats, printFileTokenStats } from './tokenStats.js';
 import {
   OracleResponseError,
+  PromptValidationError,
   describeTransportError,
   toTransportError,
 } from './errors.js';
@@ -58,12 +59,17 @@ export async function runOracle(options: RunOracleOptions, deps: RunOracleDeps =
   const isPreview = Boolean(previewMode);
 
   if (!apiKey) {
-    throw new Error('Missing OPENAI_API_KEY. Set it via the environment or a .env file.');
+    throw new PromptValidationError('Missing OPENAI_API_KEY. Set it via the environment or a .env file.', {
+      env: 'OPENAI_API_KEY',
+    });
   }
 
   const modelConfig = MODEL_CONFIGS[options.model];
   if (!modelConfig) {
-    throw new Error(`Unsupported model "${options.model}". Choose one of: ${Object.keys(MODEL_CONFIGS).join(', ')}`);
+    throw new PromptValidationError(
+      `Unsupported model "${options.model}". Choose one of: ${Object.keys(MODEL_CONFIGS).join(', ')}`,
+      { model: options.model },
+    );
   }
 
   const inputTokenBudget = options.maxInput ?? modelConfig.inputLimit;
@@ -112,8 +118,9 @@ export async function runOracle(options: RunOracleOptions, deps: RunOracleDeps =
     printFileTokenStats(fileTokenInfo, { inputTokenBudget, log });
   }
   if (estimatedInputTokens > inputTokenBudget) {
-    throw new Error(
+    throw new PromptValidationError(
       `Input too large (${estimatedInputTokens.toLocaleString()} tokens). Limit is ${inputTokenBudget.toLocaleString()} tokens.`,
+      { estimatedInputTokens, inputTokenBudget },
     );
   }
 

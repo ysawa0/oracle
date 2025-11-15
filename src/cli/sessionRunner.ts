@@ -2,7 +2,13 @@ import kleur from 'kleur';
 import type { SessionMetadata, SessionMode, BrowserSessionConfig } from '../sessionManager.js';
 import { updateSessionMetadata } from '../sessionManager.js';
 import type { RunOracleOptions } from '../oracle.js';
-import { runOracle, OracleResponseError, OracleTransportError, extractResponseMetadata } from '../oracle.js';
+import {
+  runOracle,
+  OracleResponseError,
+  OracleTransportError,
+  extractResponseMetadata,
+  asOracleUserError,
+} from '../oracle.js';
 import { runBrowserSessionExecution } from '../browser/sessionRunner.js';
 import { formatResponseMetadata, formatTransportMetadata } from './sessionDisplay.js';
 import { markErrorLogged } from './errorUtils.js';
@@ -57,6 +63,7 @@ export async function performSessionRun({
         },
         response: undefined,
         transport: undefined,
+        error: undefined,
       });
       return;
     }
@@ -75,11 +82,16 @@ export async function performSessionRun({
       elapsedMs: result.elapsedMs,
       response: extractResponseMetadata(result.response),
       transport: undefined,
+      error: undefined,
     });
   } catch (error: unknown) {
     const message = formatError(error);
     log(`ERROR: ${message}`);
     markErrorLogged(error);
+    const userError = asOracleUserError(error);
+    if (userError) {
+      log(dim(`User error (${userError.category}): ${userError.message}`));
+    }
     const responseMetadata = error instanceof OracleResponseError ? error.metadata : undefined;
     const metadataLine = formatResponseMetadata(responseMetadata);
     if (metadataLine) {
@@ -98,6 +110,13 @@ export async function performSessionRun({
       browser: browserConfig ? { config: browserConfig } : undefined,
       response: responseMetadata,
       transport: transportMetadata,
+      error: userError
+        ? {
+            category: userError.category,
+            message: userError.message,
+            details: userError.details,
+          }
+        : undefined,
     });
     throw error;
   }

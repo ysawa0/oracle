@@ -15,31 +15,39 @@ export class OracleUserError extends Error {
   readonly category: OracleUserErrorCategory;
   readonly details?: OracleUserErrorDetails;
 
-  constructor(category: OracleUserErrorCategory, message: string, details?: OracleUserErrorDetails) {
+  constructor(
+    category: OracleUserErrorCategory,
+    message: string,
+    details?: OracleUserErrorDetails,
+    cause?: unknown,
+  ) {
     super(message);
     this.name = 'OracleUserError';
     this.category = category;
     this.details = details;
+    if (cause) {
+      (this as Error & { cause?: unknown }).cause = cause;
+    }
   }
 }
 
 export class FileValidationError extends OracleUserError {
-  constructor(message: string, details?: OracleUserErrorDetails) {
-    super('file-validation', message, details);
+  constructor(message: string, details?: OracleUserErrorDetails, cause?: unknown) {
+    super('file-validation', message, details, cause);
     this.name = 'FileValidationError';
   }
 }
 
 export class BrowserAutomationError extends OracleUserError {
-  constructor(message: string, details?: OracleUserErrorDetails) {
-    super('browser-automation', message, details);
+  constructor(message: string, details?: OracleUserErrorDetails, cause?: unknown) {
+    super('browser-automation', message, details, cause);
     this.name = 'BrowserAutomationError';
   }
 }
 
 export class PromptValidationError extends OracleUserError {
-  constructor(message: string, details?: OracleUserErrorDetails) {
-    super('prompt-validation', message, details);
+  constructor(message: string, details?: OracleUserErrorDetails, cause?: unknown) {
+    super('prompt-validation', message, details, cause);
     this.name = 'PromptValidationError';
   }
 }

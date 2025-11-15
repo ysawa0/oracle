@@ -44,6 +44,12 @@ export interface SessionTransportMetadata {
   reason?: TransportFailureReason;
 }
 
+export interface SessionUserErrorMetadata {
+  category?: string;
+  message?: string;
+  details?: Record<string, unknown>;
+}
+
 export interface StoredRunOptions {
   prompt?: string;
   file?: string[];
@@ -83,6 +89,7 @@ export interface SessionMetadata {
   browser?: BrowserMetadata;
   response?: SessionResponseMetadata;
   transport?: SessionTransportMetadata;
+  error?: SessionUserErrorMetadata;
 }
 
 interface SessionLogWriter {

@@ -11,8 +11,13 @@ export { getFileTokenStats, printFileTokenStats } from './oracle/tokenStats.js';
 export {
   OracleResponseError,
   OracleTransportError,
+  OracleUserError,
+  FileValidationError,
+  BrowserAutomationError,
+  PromptValidationError,
   describeTransportError,
   extractResponseMetadata,
+  asOracleUserError,
   toTransportError,
 } from './oracle/errors.js';
 export { createDefaultClientFactory } from './oracle/client.js';

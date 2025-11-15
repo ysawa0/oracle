@@ -24,7 +24,7 @@ vi.mock('../../src/sessionManager.ts', async () => {
 
 import type { SessionMetadata } from '../../src/sessionManager.ts';
 import { performSessionRun } from '../../src/cli/sessionRunner.ts';
-import { OracleResponseError, OracleTransportError, runOracle } from '../../src/oracle.ts';
+import { FileValidationError, OracleResponseError, OracleTransportError, runOracle } from '../../src/oracle.ts';
 import type { OracleResponse, RunOracleResult } from '../../src/oracle.ts';
 import { runBrowserSessionExecution } from '../../src/browser/sessionRunner.ts';
 import { updateSessionMetadata } from '../../src/sessionManager.ts';
@@ -148,5 +148,28 @@ describe('performSessionRun', () => {
       transport: { reason: 'client-timeout' },
     });
     expect(log).toHaveBeenCalledWith(expect.stringContaining('Transport'));
+  });
+
+  test('captures user errors when OracleUserError thrown', async () => {
+    vi.mocked(runOracle).mockRejectedValue(new FileValidationError('too large', { path: 'foo.txt' }));
+
+    await expect(
+      performSessionRun({
+        sessionMeta: baseSessionMeta,
+        runOptions: baseRunOptions,
+        mode: 'api',
+        cwd: '/tmp',
+        log,
+        write,
+        version: '1.0.0',
+      }),
+    ).rejects.toThrow('too large');
+
+    const finalUpdate = vi.mocked(updateSessionMetadata).mock.calls.at(-1)?.[1];
+    expect(finalUpdate).toMatchObject({
+      status: 'error',
+      error: expect.objectContaining({ category: 'file-validation', message: 'too large' }),
+    });
+    expect(log).toHaveBeenCalledWith(expect.stringContaining('User error (file-validation)'));
   });
 });

@@ -4,6 +4,7 @@ import {
   buildReattachLine,
   formatResponseMetadata,
   formatTransportMetadata,
+  formatUserErrorMetadata,
 } from '../../src/cli/sessionDisplay.ts';
 
 vi.useFakeTimers();
@@ -32,6 +33,18 @@ describe('formatTransportMetadata', () => {
 
   test('falls back to null when not provided', () => {
     expect(formatTransportMetadata()).toBeNull();
+  });
+});
+
+describe('formatUserErrorMetadata', () => {
+  test('returns null when not provided', () => {
+    expect(formatUserErrorMetadata()).toBeNull();
+  });
+
+  test('formats category, message, and details', () => {
+    expect(
+      formatUserErrorMetadata({ category: 'file-validation', message: 'Too big', details: { path: 'foo.txt' } }),
+    ).toBe('file-validation | message=Too big | details={"path":"foo.txt"}');
   });
 });
 

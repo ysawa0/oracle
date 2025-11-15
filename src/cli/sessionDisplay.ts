@@ -1,6 +1,6 @@
 import chalk from 'chalk';
 import kleur from 'kleur';
-import type { SessionMetadata, SessionTransportMetadata } from '../sessionManager.js';
+import type { SessionMetadata, SessionTransportMetadata, SessionUserErrorMetadata } from '../sessionManager.js';
 import {
   filterSessionsByRange,
   listSessionsMetadata,
@@ -83,6 +83,10 @@ export async function attachSession(sessionId: string): Promise<void> {
   if (transportSummary) {
     console.log(dim(`Transport: ${transportSummary}`));
   }
+  const userErrorSummary = formatUserErrorMetadata(metadata.error);
+  if (userErrorSummary) {
+    console.log(dim(`User error: ${userErrorSummary}`));
+  }
 
   let lastLength = 0;
   const printNew = async () => {
@@ -151,6 +155,23 @@ export function formatTransportMetadata(metadata?: SessionTransportMetadata): st
   };
   const label = reasonLabels[metadata.reason] ?? 'transport error';
   return `${metadata.reason} — ${label}`;
+}
+
+export function formatUserErrorMetadata(metadata?: SessionUserErrorMetadata): string | null {
+  if (!metadata) {
+    return null;
+  }
+  const parts: string[] = [];
+  if (metadata.category) {
+    parts.push(metadata.category);
+  }
+  if (metadata.message) {
+    parts.push(`message=${metadata.message}`);
+  }
+  if (metadata.details && Object.keys(metadata.details).length > 0) {
+    parts.push(`details=${JSON.stringify(metadata.details)}`);
+  }
+  return parts.length > 0 ? parts.join(' | ') : null;
 }
 
 export function buildReattachLine(metadata: SessionMetadata): string | null {

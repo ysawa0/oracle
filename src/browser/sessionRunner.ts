@@ -4,6 +4,7 @@ import { formatElapsed } from '../oracle.js';
 import type { BrowserSessionConfig, BrowserRuntimeMetadata } from '../sessionManager.js';
 import { runBrowserMode } from '../browserMode.js';
 import { assembleBrowserPrompt } from './prompt.js';
+import { BrowserAutomationError } from '../oracle/errors.js';
 
 export interface BrowserExecutionResult {
   usage: {
@@ -55,14 +56,23 @@ export async function runBrowserSessionExecution(
   const headerLine = `Oracle (${cliVersion}) launching browser mode (${runOptions.model}) with ~${promptArtifacts.estimatedInputTokens.toLocaleString()} tokens`;
   log(headerLine);
   log(chalk.dim('Chrome automation does not stream output; this may take a minute...'));
-  const browserResult = await executeBrowser({
-    prompt: promptArtifacts.composerText,
-    attachments: promptArtifacts.attachments,
-    config: browserConfig,
-    log,
-    heartbeatIntervalMs: runOptions.heartbeatIntervalMs,
-    verbose: runOptions.verbose,
-  });
+  let browserResult;
+  try {
+    browserResult = await executeBrowser({
+      prompt: promptArtifacts.composerText,
+      attachments: promptArtifacts.attachments,
+      config: browserConfig,
+      log,
+      heartbeatIntervalMs: runOptions.heartbeatIntervalMs,
+      verbose: runOptions.verbose,
+    });
+  } catch (error) {
+    if (error instanceof BrowserAutomationError) {
+      throw error;
+    }
+    const message = error instanceof Error ? error.message : 'Browser automation failed.';
+    throw new BrowserAutomationError(message, { stage: 'execute-browser' }, error);
+  }
   if (!runOptions.silent) {
     log(chalk.bold('Answer:'));
     log(browserResult.answerMarkdown || browserResult.answerText || chalk.dim('(no text output)'));

@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import fg from 'fast-glob';
 import type { FileContent, FileSection, MinimalFsModule, FsStats } from './types.js';
+import { FileValidationError } from './errors.js';
 
 const MAX_FILE_SIZE_BYTES = 1 * 1024 * 1024; // 1 MB
 const DEFAULT_FS = fs as MinimalFsModule;
@@ -35,7 +36,10 @@ export async function readFiles(
   }
 
   if (candidatePaths.length === 0) {
-    throw new Error('No files matched the provided --file patterns.');
+    throw new FileValidationError('No files matched the provided --file patterns.', {
+      patterns: partitioned.globPatterns,
+      excludes: partitioned.excludePatterns,
+    });
   }
 
   const oversized: string[] = [];
@@ -44,8 +48,8 @@ export async function readFiles(
     let stats: FsStats;
     try {
       stats = await fsModule.stat(filePath);
-    } catch {
-      throw new Error(`Missing file or directory: ${filePath}`);
+    } catch (error) {
+      throw new FileValidationError(`Missing file or directory: ${relativePath(filePath, cwd)}`, { path: filePath }, error);
     }
     if (!stats.isFile()) {
       continue;
@@ -59,7 +63,10 @@ export async function readFiles(
   }
 
   if (oversized.length > 0) {
-    throw new Error(`The following files exceed the 1 MB limit:\n- ${oversized.join('\n- ')}`);
+    throw new FileValidationError(`The following files exceed the 1 MB limit:\n- ${oversized.join('\n- ')}`, {
+      files: oversized,
+      limitBytes: maxFileSizeBytes,
+    });
   }
 
   const files: FileContent[] = [];
@@ -104,15 +111,15 @@ async function partitionFileInputs(
     let stats: FsStats;
     try {
       stats = await fsModule.stat(absolutePath);
-    } catch {
-      throw new Error(`Missing file or directory: ${raw}`);
+    } catch (error) {
+      throw new FileValidationError(`Missing file or directory: ${raw}`, { path: absolutePath }, error);
     }
     if (stats.isDirectory()) {
       result.literalDirectories.push(absolutePath);
     } else if (stats.isFile()) {
       result.literalFiles.push(absolutePath);
     } else {
-      throw new Error(`Not a file or directory: ${raw}`);
+      throw new FileValidationError(`Not a file or directory: ${raw}`, { path: absolutePath });
     }
   }
 
@@ -222,6 +229,11 @@ function formatBytes(size: number): string {
     return `${(size / 1024).toFixed(1)} KB`;
   }
   return `${size} B`;
+}
+
+function relativePath(targetPath: string, cwd: string): string {
+  const relative = path.relative(cwd, targetPath);
+  return relative || targetPath;
 }
 
 export function createFileSections(files: FileContent[], cwd = process.cwd()): FileSection[] {
