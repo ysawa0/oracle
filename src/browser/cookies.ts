@@ -193,6 +193,12 @@ async function attemptSqliteRebuild(): Promise<boolean> {
     return false;
   }
   attemptedSqliteRebuild = true;
+  if (process.env.ORACLE_ALLOW_SQLITE_REBUILD !== '1') {
+    console.warn(
+      '[oracle] sqlite3 bindings missing. Set ORACLE_ALLOW_SQLITE_REBUILD=1 if you want Oracle to attempt an automatic rebuild, or run `pnpm rebuild chrome-cookies-secure sqlite3 keytar --workspace-root` manually.',
+    );
+    return false;
+  }
   const pnpmCommand = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
   const args = ['rebuild', 'chrome-cookies-secure', 'sqlite3', 'keytar'];
   if (HAS_PNPM_WORKSPACE) {

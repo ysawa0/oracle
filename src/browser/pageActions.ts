@@ -65,6 +65,7 @@ async function waitForDocumentReady(Runtime: ChromeClient['Runtime'], timeoutMs:
 export async function ensurePromptReady(Runtime: ChromeClient['Runtime'], timeoutMs: number, logger: BrowserLogger) {
   const ready = await waitForPrompt(Runtime, timeoutMs);
   if (!ready) {
+    await logDomFailure(Runtime, logger, 'prompt-textarea');
     throw new Error('Prompt textarea did not appear before timeout');
   }
   logger('Prompt textarea ready');
@@ -120,9 +121,11 @@ export async function ensureModelSelection(
       return;
     }
     case 'option-not-found': {
+      await logDomFailure(Runtime, logger, 'model-switcher-option');
       throw new Error(`Unable to find model option matching "${desiredModel}" in the model switcher.`);
     }
     default: {
+      await logDomFailure(Runtime, logger, 'model-switcher-button');
       throw new Error('Unable to locate the ChatGPT model selector button.');
     }
   }
@@ -350,6 +353,7 @@ export async function submitPrompt(
     awaitPromise: true,
   });
   if (!focusResult.result?.value?.focused) {
+    await logDomFailure(runtime, logger, 'focus-textarea');
     throw new Error('Failed to focus prompt textarea');
   }
 
@@ -407,7 +411,7 @@ export async function submitPrompt(
     logger('Clicked send button');
   }
 
-  await verifyPromptCommitted(runtime, prompt, 30_000);
+  await verifyPromptCommitted(runtime, prompt, 30_000, logger);
 }
 
 export async function uploadAttachmentFile(
@@ -479,7 +483,12 @@ export async function waitForAttachmentCompletion(
   throw new Error('Attachments did not finish uploading before timeout.');
 }
 
-async function verifyPromptCommitted(Runtime: ChromeClient['Runtime'], prompt: string, timeoutMs: number) {
+async function verifyPromptCommitted(
+  Runtime: ChromeClient['Runtime'],
+  prompt: string,
+  timeoutMs: number,
+  logger?: BrowserLogger,
+) {
   const deadline = Date.now() + timeoutMs;
   const encodedPrompt = JSON.stringify(prompt.trim());
   const script = `(() => {
@@ -504,6 +513,9 @@ async function verifyPromptCommitted(Runtime: ChromeClient['Runtime'], prompt: s
       return;
     }
     await delay(100);
+  }
+  if (logger) {
+    await logDomFailure(Runtime, logger, 'prompt-commit');
   }
   throw new Error('Prompt did not appear in conversation before timeout (send may have failed)');
 }
@@ -752,6 +764,15 @@ async function logConversationSnapshot(Runtime: ChromeClient['Runtime'], logger:
   }
 }
 
+async function logDomFailure(Runtime: ChromeClient['Runtime'], logger: BrowserLogger, context: string) {
+  try {
+    logger(`Browser automation failure (${context}); capturing DOM snapshot for debugging...`);
+    await logConversationSnapshot(Runtime, logger);
+  } catch {
+    // ignore snapshot failures
+  }
+}
+
 function buildAssistantExtractor(functionName: string): string {
   const conversationLiteral = JSON.stringify(CONVERSATION_TURN_SELECTOR);
   const assistantLiteral = JSON.stringify(ASSISTANT_ROLE_SELECTOR);
@@ -959,6 +980,14 @@ export async function captureAssistantMarkdown(
     logger(`Copy button fallback status: ${status}`);
   }
   return null;
+}
+
+export function __buildAssistantExtractorForTest(name: string): string {
+  return buildAssistantExtractor(name);
+}
+
+export function __buildConversationDebugExpressionForTest(): string {
+  return buildConversationDebugExpression();
 }
 
 function buildCopyExpression(meta: { messageId?: string | null; turnId?: string | null }): string {
