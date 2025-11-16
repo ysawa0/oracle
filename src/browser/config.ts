@@ -1,4 +1,4 @@
-import { CHATGPT_URL, DEFAULT_MODEL_TARGET } from './constants.js';
+import { CHATGPT_URL } from './constants.js';
 import type { BrowserAutomationConfig, ResolvedBrowserConfig } from './types.js';
 
 export const DEFAULT_BROWSER_CONFIG: ResolvedBrowserConfig = {
@@ -11,7 +11,7 @@ export const DEFAULT_BROWSER_CONFIG: ResolvedBrowserConfig = {
   headless: false,
   keepBrowser: false,
   hideWindow: false,
-  desiredModel: DEFAULT_MODEL_TARGET,
+  desiredModel: null,
   debug: false,
   allowCookieErrors: false,
 };

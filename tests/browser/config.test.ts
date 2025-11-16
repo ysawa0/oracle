@@ -8,6 +8,7 @@ describe('resolveBrowserConfig', () => {
     expect(resolved.url).toBe(CHATGPT_URL);
     expect(resolved.cookieSync).toBe(true);
     expect(resolved.headless).toBe(false);
+    expect(resolved.desiredModel).toBeNull();
   });
 
   test('applies overrides', () => {

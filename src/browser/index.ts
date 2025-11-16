@@ -9,7 +9,6 @@ import {
   navigateToChatGPT,
   ensureNotBlocked,
   ensurePromptReady,
-  ensureModelSelection,
   submitPrompt,
   waitForAssistantResponse,
   captureAssistantMarkdown,
@@ -109,22 +108,6 @@ export async function runBrowserMode(options: BrowserRunOptions): Promise<Browse
     await ensureNotBlocked(Runtime, config.headless, logger);
     await ensurePromptReady(Runtime, config.inputTimeoutMs, logger);
     logger(`Prompt textarea ready (initial focus, ${promptText.length.toLocaleString()} chars queued)`);
-    if (config.desiredModel) {
-      await withRetries(
-        () => ensureModelSelection(Runtime, config.desiredModel as string, logger),
-        {
-          retries: 2,
-          delayMs: 300,
-          onRetry: (attempt, error) => {
-            if (options.verbose) {
-              logger(`[retry] Model picker attempt ${attempt + 1}: ${error instanceof Error ? error.message : error}`);
-            }
-          },
-        },
-      );
-      await ensurePromptReady(Runtime, config.inputTimeoutMs, logger);
-      logger(`Prompt textarea ready (after model switch, ${promptText.length.toLocaleString()} chars queued)`);
-    }
     if (attachments.length > 0) {
       if (!DOM) {
         throw new Error('Chrome DOM domain unavailable while uploading attachments.');

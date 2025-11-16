@@ -31,7 +31,7 @@ import {
   inferModelFromLabel,
   parseHeartbeatOption,
 } from '../src/cli/options.js';
-import { buildBrowserConfig, resolveBrowserModelLabel } from '../src/cli/browserConfig.js';
+import { buildBrowserConfig } from '../src/cli/browserConfig.js';
 import { performSessionRun } from '../src/cli/sessionRunner.js';
 import { attachSession, showStatus } from '../src/cli/sessionDisplay.js';
 import type { ShowStatusOptions } from '../src/cli/sessionDisplay.js';
@@ -413,14 +413,11 @@ async function runRootCommand(options: CliOptions): Promise<void> {
   }
 
   const sessionMode: SessionMode = engine === 'browser' ? 'browser' : 'api';
-  const browserModelLabelOverride =
-    sessionMode === 'browser' ? resolveBrowserModelLabel(cliModelArg, resolvedModel) : undefined;
   const browserConfig =
     sessionMode === 'browser'
       ? buildBrowserConfig({
           ...options,
           model: resolvedModel,
-          browserModelLabel: browserModelLabelOverride,
         })
       : undefined;
 
